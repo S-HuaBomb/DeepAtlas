@@ -4,6 +4,7 @@ Created by zhenlinx on 12/20/2020
 """
 import os
 import sys
+
 sys.path.append(os.path.realpath(".."))
 import time
 import datetime
@@ -21,6 +22,7 @@ from lib.network_factory import get_network
 import lib.visualize as vis
 import lib.evalMetrics as metrics
 from lib.param_dict import save_dict_to_json, load_jason_to_dict
+
 
 class BaseExperiment():
     def __init__(self, config, **kwargs):

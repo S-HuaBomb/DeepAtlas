@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import numpy as np
 from .transforms import mask_to_one_hot
 
+
 # Intersection = dot(A, B)
 # Union = dot(A, A) + dot(B, B)
 # The Dice loss function is defined as
@@ -124,13 +125,13 @@ class SoftCrossEntropy(nn.Module):
         else:
             target_flat = None
             raise ValueError("Incorrect size of target tensor: {}, should be {} or []".format(target.shape, shape,
-                                                                                        shape[:1] + [1, ] + shape[2:]))
+                                                                                              shape[:1] + [1, ] + shape[
+                                                                                                                  2:]))
 
         if self.softmax:
             return torch.mean(torch.sum(- target * F.log_softmax(pred, 1), 1))
         else:
             return torch.mean(torch.sum(- target * torch.log(pred.clamp_(min=1e-8)), 1))
-
 
 
 class FocalLoss(nn.Module):
@@ -175,19 +176,17 @@ class FocalLoss(nn.Module):
         # if len(inputs.shape) == len(targets.shape) and targets.shape[1] == 1:
         #     targets = targets.squeeze(1)
 
-
         if len(inputs.shape) > 2 and len(targets.shape) > 1:
             inputs = inputs.permute(0, 2, 3, 4, 1).contiguous().view(-1, inputs.size(1))
             targets = targets.view(-1)
 
-        targets =targets.long()
+        targets = targets.long()
 
         # TODO avoid softmax in focal loss
         if self.soft_max:
             P = F.softmax(inputs, dim=1)
         else:
             P = inputs
-
 
         if inputs.is_cuda and not self.alpha.is_cuda:
             self.alpha = self.alpha.cuda()
@@ -211,6 +210,7 @@ class SoftFocalLoss(FocalLoss):
     """
     Focal Loss that takes probabilistic map targets
     """
+
     def forward(self, inputs, targets):
         pass
 
@@ -221,7 +221,7 @@ class FocalLoss2(nn.Module):
     """
 
     def __init__(self, gamma=0, eps=1e-7):
-        super(FocalLoss, self).__init__()
+        super(FocalLoss2, self).__init__()
         self.gamma = gamma
         self.eps = eps
 
@@ -391,9 +391,6 @@ class DiceLossOnLabel(nn.Module):
         return 1 - scores.mean()
 
 
-
-
-
 class DiceLossMultiClass(nn.Module):
     """Dice loss from two inputs of segmentation (between a mask and a probability map)"""
 
@@ -430,15 +427,15 @@ class DiceLossMultiClass(nn.Module):
         source_flat = source.view(shape[0], shape[1], -1)
 
         # flat the spatial dimensions and transform it into one-hot coding
-        if len(target.shape) == len(shape)-1:
+        if len(target.shape) == len(shape) - 1:
             target_flat = mask_to_one_hot(target.view(shape[0], 1, -1), self.n_class)
         elif target.shape[1] == shape[1]:
             target_flat = target.view(shape[0], shape[1], -1)
         else:
             target_flat = None
             raise ValueError("Incorrect size of target tensor: {}, should be {} or []".format(target.shape, shape,
-                                                                                        shape[:1] + [1, ] + shape[2:]))
-
+                                                                                              shape[:1] + [1, ] + shape[
+                                                                                                                  2:]))
 
         # does not consider background
         if self.no_bg:
@@ -451,7 +448,7 @@ class DiceLossMultiClass(nn.Module):
 
         if self.weight_type == 'Simple':
             # weights = (target_volume.float().sqrt() + self.eps).reciprocal()
-            weights = (target_volume.float()**(1./3.) + self.eps).reciprocal()
+            weights = (target_volume.float() ** (1. / 3.) + self.eps).reciprocal()
             # temp_weights = torch.where(torch.isinf(weights), torch.ones_like(weights), weights)
             # max_weights = temp_weights.max(dim=1, keepdim=True)[0]
             # weights = torch.where(torch.isinf(weights), torch.ones_like(weights)*max_weights, weights)
@@ -473,8 +470,7 @@ class DiceLossMultiClass(nn.Module):
         scores = (2. * (intersection.float()) + self.eps) / (
                 (source_volume.float() + target_volume.float()) + 2 * self.eps)
 
-        return 1 - (weights*scores).sum()/weights.sum()
-
+        return 1 - (weights * scores).sum() / weights.sum()
 
 
 """
@@ -496,7 +492,7 @@ class NormalizedCrossCorrelationLoss(nn.Module):
         input_minus_mean = input - torch.mean(input, 1, keepdim=True)
         target_minus_mean = target - torch.mean(target, 1, keepdim=True)
         nccSqr = (input_minus_mean * target_minus_mean).mean(1) / (
-            torch.sqrt((input_minus_mean**2).mean(1)) * torch.sqrt((target_minus_mean**2).mean(1)))
+                torch.sqrt((input_minus_mean ** 2).mean(1)) * torch.sqrt((target_minus_mean ** 2).mean(1)))
         nccSqr = nccSqr.mean()
         return 1 - nccSqr
 
@@ -612,7 +608,7 @@ class VoxelMorphLNCC(nn.Module):
         I_var = I_square_local_sum - 2 * I_local_mean * I_local_sum + I_local_mean ** 2 * self.win_numel
         J_var = J_square_local_sum - 2 * J_local_mean * J_local_sum + J_local_mean ** 2 * self.win_numel
 
-        cc = (cross ** 2)/ (I_var * J_var + self.eps)
+        cc = (cross ** 2) / (I_var * J_var + self.eps)
 
         return 1 - cc.mean()
 
@@ -662,7 +658,6 @@ class gradientLoss(nn.Module):
 
         dz = torch.abs(input[:, :, :, :, 2:] + input[:, :, :, :, :-2]).view(input.shape[0], input.shape[1], -1)
 
-
         if self.norm == 'L2':
             dx = (dx ** 2).mean(2) * (spatial_dims * self.spacing / (self.spacing[0])) ** 2
             dy = (dy ** 2).mean(2) * (spatial_dims * self.spacing / (self.spacing[1])) ** 2
@@ -699,34 +694,36 @@ class BendingEnergyLoss(nn.Module):
         # f''(x) = [f(x+h) + f(x-h) - 2f(x)] / h^2
         # f_{x, y}(x, y) = [df(x+h, y+k) + df(x-h, y-k) - df(x+h, y-k) - df(x-h, y+k)] / 2hk
 
-        ddx = torch.abs(input[:, :, 2:, 1:-1, 1:-1] + input[:, :, :-2, 1:-1, 1:-1] - 2 * input[:, :, 1:-1, 1:-1, 1:-1])\
-                 .view(input.shape[0], input.shape[1], -1)
+        ddx = torch.abs(input[:, :, 2:, 1:-1, 1:-1] + input[:, :, :-2, 1:-1, 1:-1] - 2 * input[:, :, 1:-1, 1:-1, 1:-1]) \
+            .view(input.shape[0], input.shape[1], -1)
 
         ddy = torch.abs(input[:, :, 1:-1, 2:, 1:-1] + input[:, :, 1:-1, :-2, 1:-1] - 2 * input[:, :, 1:-1, 1:-1, 1:-1]) \
-                 .view(input.shape[0], input.shape[1], -1)
+            .view(input.shape[0], input.shape[1], -1)
 
         ddz = torch.abs(input[:, :, 1:-1, 1:-1, 2:] + input[:, :, 1:-1, 1:-1, :-2] - 2 * input[:, :, 1:-1, 1:-1, 1:-1]) \
-                 .view(input.shape[0], input.shape[1], -1)
+            .view(input.shape[0], input.shape[1], -1)
 
         dxdy = torch.abs(input[:, :, 2:, 2:, 1:-1] + input[:, :, :-2, :-2, 1:-1] -
-                         input[:, :, 2:, :-2, 1:-1] - input[:, :, :-2, 2:, 1:-1]).view(input.shape[0], input.shape[1], -1)
+                         input[:, :, 2:, :-2, 1:-1] - input[:, :, :-2, 2:, 1:-1]).view(input.shape[0], input.shape[1],
+                                                                                       -1)
 
         dydz = torch.abs(input[:, :, 1:-1, 2:, 2:] + input[:, :, 1:-1, :-2, :-2] -
-                         input[:, :, 1:-1, 2:, :-2] - input[:, :, 1:-1, :-2, 2:]).view(input.shape[0], input.shape[1], -1)
+                         input[:, :, 1:-1, 2:, :-2] - input[:, :, 1:-1, :-2, 2:]).view(input.shape[0], input.shape[1],
+                                                                                       -1)
 
         dxdz = torch.abs(input[:, :, 2:, 1:-1, 2:] + input[:, :, :-2, 1:-1, :-2] -
-                         input[:, :, 2:, 1:-1, :-2] - input[:, :, :-2, 1:-1, 2:]).view(input.shape[0], input.shape[1], -1)
-
+                         input[:, :, 2:, 1:-1, :-2] - input[:, :, :-2, 1:-1, 2:]).view(input.shape[0], input.shape[1],
+                                                                                       -1)
 
         if self.norm == 'L2':
-            ddx = (ddx ** 2).mean(2) * (spatial_dims * self.spacing / (self.spacing[0]**2)) ** 2
-            ddy = (ddy ** 2).mean(2) * (spatial_dims * self.spacing / (self.spacing[1]**2)) ** 2
-            ddz = (ddz ** 2).mean(2) * (spatial_dims * self.spacing / (self.spacing[2]**2)) ** 2
+            ddx = (ddx ** 2).mean(2) * (spatial_dims * self.spacing / (self.spacing[0] ** 2)) ** 2
+            ddy = (ddy ** 2).mean(2) * (spatial_dims * self.spacing / (self.spacing[1] ** 2)) ** 2
+            ddz = (ddz ** 2).mean(2) * (spatial_dims * self.spacing / (self.spacing[2] ** 2)) ** 2
             dxdy = (dxdy ** 2).mean(2) * (spatial_dims * self.spacing / (self.spacing[0] * self.spacing[1])) ** 2
             dydz = (dydz ** 2).mean(2) * (spatial_dims * self.spacing / (self.spacing[1] * self.spacing[2])) ** 2
             dxdz = (dxdz ** 2).mean(2) * (spatial_dims * self.spacing / (self.spacing[2] * self.spacing[0])) ** 2
 
-        d = (ddx.mean() + ddy.mean() + ddz.mean() + 2*dxdy.mean() + 2*dydz.mean() + 2*dxdz.mean()) / 9.0
+        d = (ddx.mean() + ddy.mean() + ddz.mean() + 2 * dxdy.mean() + 2 * dydz.mean() + 2 * dxdz.mean()) / 9.0
         return d
 
 
@@ -734,6 +731,135 @@ class L2Loss(nn.Module):
 
     def forward(self, input):
         return (input ** 2).mean()
+
+
+class MINDLOSS:
+    """
+    *Preliminary* pytorch implementation.
+    Losses for VoxelMorph
+    """
+
+    def ncc_loss(self, I, J, win=None):
+        """
+        calculate the normalize cross correlation between I and J
+        assumes I, J are sized [batch_size, *vol_shape, nb_feats]
+        """
+
+        ndims = len(list(I.size())) - 2
+        assert ndims in [1, 2, 3], "volumes should be 1 to 3 dimensions. found: %d" % ndims
+
+        if win is None:
+            win = [9] * ndims
+
+        conv_fn = getattr(F, 'conv%dd' % ndims)
+        I2 = I * I
+        J2 = J * J
+        IJ = I * J
+
+        sum_filt = torch.ones([1, 1, *win]).to("cuda")
+
+        pad_no = math.floor(win[0] / 2)
+
+        if ndims == 1:
+            stride = (1)
+            padding = (pad_no)
+        elif ndims == 2:
+            stride = (1, 1)
+            padding = (pad_no, pad_no)
+        else:
+            stride = (1, 1, 1)
+            padding = (pad_no, pad_no, pad_no)
+
+        I_var, J_var, cross = self.compute_local_sums(I, J, sum_filt, stride, padding, win)
+
+        cc = cross * cross / (I_var * J_var + 1e-5)
+
+        return -1 * torch.mean(cc)
+
+    def compute_local_sums(self, I, J, filt, stride, padding, win):
+        I2 = I * I
+        J2 = J * J
+        IJ = I * J
+
+        I_sum = F.conv3d(I, filt, stride=stride, padding=padding)
+        J_sum = F.conv3d(J, filt, stride=stride, padding=padding)
+        I2_sum = F.conv3d(I2, filt, stride=stride, padding=padding)
+        J2_sum = F.conv3d(J2, filt, stride=stride, padding=padding)
+        IJ_sum = F.conv3d(IJ, filt, stride=stride, padding=padding)
+
+        win_size = np.prod(win)
+        u_I = I_sum / win_size
+        u_J = J_sum / win_size
+
+        cross = IJ_sum - u_J * I_sum - u_I * J_sum + u_I * u_J * win_size
+        I_var = I2_sum - 2 * u_I * I_sum + u_I * u_I * win_size
+        J_var = J2_sum - 2 * u_J * J_sum + u_J * u_J * win_size
+
+        return I_var, J_var, cross
+
+    def pdist_squared(self, x):
+        xx = (x ** 2).sum(dim=1).unsqueeze(2)
+        yy = xx.permute(0, 2, 1)
+        dist = xx + yy - 2.0 * torch.bmm(x.permute(0, 2, 1), x)
+        dist[dist != dist] = 0
+        dist = torch.clamp(dist, 0.0, 255.0)
+        return dist
+
+    def MINDSSC(self, img, radius=2, dilation=2):
+        # see http://mpheinrich.de/pub/miccai2013_943_mheinrich.pdf for details on the MIND-SSC descriptor
+
+        # kernel size
+        kernel_size = radius * 2 + 1
+
+        # define start and end locations for self-similarity pattern
+        six_neighbourhood = torch.Tensor([[0, 1, 1],
+                                          [1, 1, 0],
+                                          [1, 0, 1],
+                                          [1, 1, 2],
+                                          [2, 1, 1],
+                                          [1, 2, 1]]).long()
+
+        # squared distances
+        dist = self.pdist_squared(six_neighbourhood.t().unsqueeze(0)).squeeze(0)
+
+        # define comparison mask
+        x, y = torch.meshgrid(torch.arange(6), torch.arange(6))
+        mask = ((x > y).view(-1) & (dist == 2).view(-1))
+
+        # build kernel
+        idx_shift1 = six_neighbourhood.unsqueeze(1).repeat(1, 6, 1).view(-1, 3)[mask, :]
+        idx_shift2 = six_neighbourhood.unsqueeze(0).repeat(6, 1, 1).view(-1, 3)[mask, :]
+        mshift1 = torch.zeros(12, 1, 3, 3, 3).cuda()
+        mshift1.view(-1)[torch.arange(12) * 27 + idx_shift1[:, 0] * 9 + idx_shift1[:, 1] * 3 + idx_shift1[:, 2]] = 1
+        mshift2 = torch.zeros(12, 1, 3, 3, 3).cuda()
+        mshift2.view(-1)[torch.arange(12) * 27 + idx_shift2[:, 0] * 9 + idx_shift2[:, 1] * 3 + idx_shift2[:, 2]] = 1
+        rpad1 = nn.ReplicationPad3d(dilation)
+        rpad2 = nn.ReplicationPad3d(radius)
+
+        # compute patch-ssd
+        ssd = F.avg_pool3d(rpad2(
+            (F.conv3d(rpad1(img), mshift1, dilation=dilation) - F.conv3d(rpad1(img), mshift2, dilation=dilation)) ** 2),
+                           kernel_size, stride=1)
+
+        # MIND equation
+        mind = ssd - torch.min(ssd, 1, keepdim=True)[0]
+        mind_var = torch.mean(mind, 1, keepdim=True)
+        mind_var = mind_var.cpu().data
+        mind_var = torch.clamp(mind_var, mind_var.mean() * 0.001, mind_var.mean() * 1000)
+
+        device = torch.device('cuda')
+        mind_var = mind_var.to(device)
+        mind /= mind_var
+        mind = torch.exp(-mind)
+
+        # permute to have same ordering as C++ code
+        mind = mind[:, torch.Tensor([6, 8, 1, 11, 2, 10, 0, 7, 9, 4, 5, 3]).long(), :, :, :]
+
+        return mind
+
+    @classmethod
+    def mind_loss(cls, x, y):
+        return torch.mean((self.MINDSSC(x) - self.MINDSSC(y)) ** 2)
 
 
 loss_dict = {
@@ -746,7 +872,8 @@ loss_dict = {
     'L2': L2Loss,
     'focal': FocalLoss,
     'cross_entropy': nn.CrossEntropyLoss,
-    'soft_cross_entropy': SoftCrossEntropy
+    'soft_cross_entropy': SoftCrossEntropy,
+    'mind_loss': MINDLOSS.mind_loss
 }
 
 

@@ -4,9 +4,7 @@ modules for building networks
 Created by zhenlinx on 11/4/18
 """
 import torch
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 available_activations = {'ReLU': nn.ReLU,
                          'LeakyReLU': nn.LeakyReLU}
@@ -29,6 +27,7 @@ class convBlock(nn.Module):
     """
     A convolutional block including conv, BN, nonliear activiation, residual connection
     """
+
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1,
                  bias=False, batchnorm=False, act=nn.ReLU, residual=False, ):
         """
@@ -51,7 +50,7 @@ class convBlock(nn.Module):
         self.residual = residual
 
     def forward(self, x):
-        x= self.conv(x)
+        x = self.conv(x)
         if self.bn:
             x = self.bn(x)
         if self.nonlinear:
@@ -71,7 +70,7 @@ class deconvBlock(nn.Module):
                  padding=0, output_padding=0, bias=False, batchnorm=False, residual=False, act=nn.ReLU):
         super(deconvBlock, self).__init__()
         self.deconv = nn.ConvTranspose3d(in_channels, out_channels, kernel_size, stride=stride,
-                              padding=padding, output_padding=output_padding, bias=bias)
+                                         padding=padding, output_padding=output_padding, bias=bias)
         self.bn = nn.BatchNorm3d(out_channels) if batchnorm else None
         self.nonlinear = get_activation_function(act) if type(act) is str else act
         self.residual = residual
@@ -86,15 +85,14 @@ class deconvBlock(nn.Module):
         return x
 
 
-
-
 def test_conv():
-    input = torch.randn(20, 16, 10, 50, 100)
+    input = torch.randn(4, 16, 10, 50, 100)  # batch_size=4, channels=16, 3D
     conv = convBlock(16, 33, stride=2)
-    deconv = deconvBlock(16,33, 3, stride=1)
+    deconv = deconvBlock(16, 33, 3, stride=1)
     output = conv(input)
     deoutput = deconv(input)
-    print(input.shape, output.shape)
+    print(input.shape, output.shape, deoutput.shape)
+
 
 if __name__ == '__main__':
     test_conv()

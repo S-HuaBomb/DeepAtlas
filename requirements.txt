@@ -1,11 +1,3 @@
-torch
-torchvision
-numpy
-scipy
 scikit-learn
 scikit-image
-tensorboard
-tensorboardX
-cython
 simpleITK
-tqdm

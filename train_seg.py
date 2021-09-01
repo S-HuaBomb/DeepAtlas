@@ -7,6 +7,8 @@ import argparse
 from models.segmentation import SegmentationExperiment
 
 
+# python train_seg.py --num-samples 21 --data-root $DATA_ROOT --num-epochs 100 --lr 1e-3 --log-root ./logs
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--device', '-g', default='0', type=str,

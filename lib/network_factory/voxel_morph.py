@@ -15,6 +15,7 @@ import torch.nn.functional as F
 from lib.network_factory.modules import convBlock
 from lib.utils import get_identity_transform_batch
 
+
 class VoxelMorphCVPR2018(nn.Module):
     """
     unet architecture for voxelmorph models presented in the CVPR 2018 paper.
@@ -26,6 +27,7 @@ class VoxelMorphCVPR2018(nn.Module):
            e.g. (16, 32, 32, 32, 32)
     :param dec_filters: list of decoder filters.
     """
+
     def __init__(self, input_channel=2, output_channel=3, enc_filters=(16, 32, 32, 32, 32),
                  dec_filters=(32, 32, 32, 8, 8)):
         super(VoxelMorphCVPR2018, self).__init__()
@@ -43,24 +45,25 @@ class VoxelMorphCVPR2018(nn.Module):
             if i == 0:
                 self.encoders.append(convBlock(input_channel, enc_filters[i], stride=1, bias=True))
             else:
-                self.encoders.append(convBlock(enc_filters[i-1], enc_filters[i], stride=2, bias=True))
+                self.encoders.append(convBlock(enc_filters[i - 1], enc_filters[i], stride=2, bias=True))
 
         for i in range(len(dec_filters)):
             if i == 0:
                 self.decoders.append(convBlock(enc_filters[-1], dec_filters[i], stride=1, bias=True))
             elif i < 4:
-                self.decoders.append(convBlock(dec_filters[i-1] if i == 4 else dec_filters[i - 1] + enc_filters[4-i],
-                                            dec_filters[i], stride=1, bias=True))
+                self.decoders.append(
+                    convBlock(dec_filters[i - 1] if i == 4 else dec_filters[i - 1] + enc_filters[4 - i],
+                              dec_filters[i], stride=1, bias=True))
             else:
-                self.decoders.append(convBlock(dec_filters[i-1], dec_filters[i], stride=1, bias=True))
+                self.decoders.append(convBlock(dec_filters[i - 1], dec_filters[i], stride=1, bias=True))
 
-        self.flow = nn.Conv3d(dec_filters[-1] + enc_filters[0], output_channel, kernel_size=3, stride=1, padding=1, bias=True)
+        self.flow = nn.Conv3d(dec_filters[-1] + enc_filters[0], output_channel, kernel_size=3, stride=1, padding=1,
+                              bias=True)
 
         # identity transform for computing displacement
         self.id_transform = None
 
     def forward(self, source, target):
-
 
         x_enc_1 = self.encoders[0](torch.cat((source, target), dim=1))
         # del input
@@ -87,7 +90,7 @@ class VoxelMorphCVPR2018(nn.Module):
 
         deform_field = disp_field + self.id_transform
         # transform images
-        warped_source = F.grid_sample(source, grid=deform_field.permute([0,2,3,4,1]), mode='bilinear',
+        warped_source = F.grid_sample(source, grid=deform_field.permute([0, 2, 3, 4, 1]), mode='bilinear',
                                       padding_mode='zeros', align_corners=True)
         return disp_field, warped_source, deform_field
 
@@ -112,6 +115,7 @@ def demo_test():
         input2 = torch.randn(1, 1, 200, 200, 160).to(cuda)
         disp_field, warped_input1, deform_field = net(input1, input2)
     pass
+
 
 if __name__ == '__main__':
     demo_test()
